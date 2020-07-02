@@ -1,0 +1,231 @@
+
+// TOD0 - add array constructors to parser - top level of expression parsing
+
+// supported types
+// inferred types - int, double, char, string (later), 
+// additional casting types - u8 u16 u32 u64 s8 s16 s32 s64 f32 f64
+
+/* GRAMMAR 
+
+M progamming language
+extension
+.m
+
+GOALS (6/22)
+parser
+ast gen
+
+file :=
+  structdef | functiondef
+
+structdef :=
+  'struct' ident '{' structbody '}'
+
+structbody :=
+  decllist functionlist 
+
+decllist :=
+  declaration decllist | empty
+
+declaration :=
+  identifier ':=' expression
+
+functionlist :=
+  functiondef functionlist | empty
+
+functiondef :=
+  'fn' identifier '(' arglist ')' '{' statementlist '}' |
+  'fn' identifier '(' arglist ')' '->' expression
+
+arglist :=
+  identifier [',' arglist] | empty
+
+statementlist :=
+  statement statementlist | empty
+
+statement :=
+  declaration | assignment | ifstatement | forstatement | functioncall | switchstmt
+
+switchstmt :=
+  'switch' expression '{' switchbody '}'
+
+switchcase :=
+  expression '{' statementlist '}' switchcase switchbody |
+  'default' '{' statementlist '}' |
+
+switchbody :=
+  switchcase switchbody | empty
+
+assignment :=
+  '=' | '+=' | '-=' | '|=' | '^=' | '<<=' | '>>=' | '*=' | '/=' | '%=''| '++' | '--' | '<<' (push) | '>>' (pop)
+
+ifstatement :=
+  'if' expression '{' statementlist '}' elsestatement
+
+elsestatement :=
+  'else' ifstatement | 'else' '{' statementlist '}' | empty
+
+forstatement :=
+  'for' looptype '{' statementlist '}'
+
+looptype :=
+  ident [, ident] 'in' iterable |
+  expression |
+  empty
+
+iterable :=
+  ident (must be array or string) | arrayliteral | string | range
+
+range :=
+  expression '..' expression
+
+arrayliteral :=
+  '[' expressionlist ']'
+
+expression :=
+  value [binop expression] |
+  unop expression |
+  ['^'] typeconstructor
+
+value :=
+  ident accumulator | literal
+
+literal :=
+  integer | double | string | arrayliteral
+
+accumulator :=
+  '.' ident accumulator |
+  '[' expression ']' accumulator |
+  '(' expressionlist ')' |
+  empty
+
+expressionlist :=
+  expression [',' expressionlist] | empty 
+
+binop :=
+  '+' | '-' | '*' | '/' | '<<' | '>>' | '==' | '!=' | '<=' | '>=' | '&&' | '||'
+
+unop :=
+  '!' | '&' | '*' | '~'
+
+type :=
+  'int' | 'double' | 'float' | 'char' | 'string' | 'u8' -> 'u32 | 'i8' -> 'i32'
+
+typeconstructor :=
+  type subtype '(' ')'
+
+subtype :=
+  '[' [int] ']' subtype | '&' subtype | subtype | empty
+
+SYMBOLS
++ = * / << >> == != <= >= && || ! & * ~ , . ' " -> ( )
+[ ] { } : := += -= ^= <<= >>= *= /= %= |= &= ++ -- | ^ ..
+
+KEYWORDS
+fn struct for if else in return break continue
+switch default null voidptr as or pub import
+
+*/
+
+struct Point {
+  x := 0.0
+  y := 0.0
+
+  fn rotate (ang) {
+    cos  := cosf(ang)
+    sin  := sinf(ang)
+
+    xn := x * cos - y * sin 
+    yn := x * sin + y * cos
+
+    x = xn
+    y = yn
+    
+    x = {
+      x := 10
+      y := 12.0
+    }
+  }
+ 
+  fn dot (p) -> p.x * x + p.y * y
+}
+/*
+possible closure implementation:
+
+fn foo () {
+  x := 0
+  return fn () {
+    x++
+    y := 0 
+    return fn () {
+      y++ // 
+    }
+  }
+}
+
+typedef struct closure1 { int x; };
+typedef struct closure2 { int y; };
+
+void closure_two (closure2 this) {
+  this.y++;
+}
+
+closure2 closure_one (closure1 this) {
+  int y = 0;
+  closure2 c;
+  this.x++;
+  c.y = y;
+  c.func = &closure_two;
+  return c;
+}
+
+closure1 foo () {
+  int x = 0;
+  closure1 c;
+  x++;
+  c.x = x;
+  c.func = &closure_one;
+  return c;
+}
+*/
+
+fn main () {
+  // types used as function calls are constructors
+  // the following are stack allocated
+  x := int[10]()
+  p := Point(0.0, 10.0)
+
+  p.rotate(0.5)
+
+  d := p.dot(Point())
+
+  // arrays - the following are equivalent - stack allocated
+  a := int[5](0) // type used as constructor - inital value for each element
+  a := [0, 0, 0, 0, 0] // type inference
+
+  // heap allocated
+
+  a := ^int[5](0) // type used as constructor 
+  a := ^[0, 0, 0, 0, 0] // illegal - ^ expects a type constructor
+  !a // freeing the memory
+
+  // dynamic arrays - supports push and pop
+  a := ^int[]()
+  a := int[]() // illegal - dynamic arrays must be heap allocated
+
+  a << 10 // push
+  a.length // 1
+  x = a >> // pop - returns 10
+
+  // casting is using the 'as' keyword
+  x := 1.0 as int
+
+  start := 1
+  end := 10
+
+  for i in start..end {
+    printf("%d\n", i)
+  }
+
+  return 0
+}
